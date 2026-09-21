@@ -7,25 +7,34 @@ tags:
   - signal simulations
   - foreground removal
 authors:
-  - name: [YOUR NAME]
-    orcid: 0000-0000-0000-0000
-    affiliation: 1
+  - name: Phil Bull
+    orcid: 0000-0000-0000-0000  # TODO: confirm with Phil
+    affiliation: 1              # TODO: confirm current affiliation
+  - name: Bruno Bizarria
+    orcid: 0000-0000-0000-0000  # TODO: confirm with Bruno
+    affiliation: 2              # TODO: confirm current affiliation
+  - name: Melis Irfan
+    orcid: 0000-0000-0000-0000  # TODO: confirm; see authorship note below
+    affiliation: 3              # TODO: confirm current affiliation
+  - name: Geoff Murphy
+    orcid: 0000-0000-0000-0000  # TODO: Geoff's ORCID
+    affiliation: 4
 affiliations:
-  - name: [YOUR INSTITUTION]
+  - name: [TODO]
     index: 1
-    ror: [YOUR ROR ID]
-date: 02 June 2026
+  - name: [TODO]
+    index: 2
+  - name: [TODO]
+    index: 3
+  - name: University of the Western Cape, Cape Town, South Africa
+    index: 4
+date: 21 September 2026
 bibliography: paper.bib
 ---
 
-# Todo
-- Add a couple figures
-- Add Steve's projection things
-- Add Bruno's updates to text, if needed
-
 # Summary
 
-`FastBox` is a Python package for generating fast, physically realistic simulations of cosmological signals in three-dimensional co-moving boxes, with the primary focus of its application being 21cm intensity mapping (IM) experiments. It provides a framework for producing cosmology-dependent Gaussian and log-normal density fields, as well as modelling the effects of redshift-space distortions and linear biasing, among others. Models of instrumental systematics are incorporated, including radiometer noise and beam convolutions. Diffuse and point source foreground models are included, along with a number of foreground filtering strategies such as PCA, ICA, and transfer function correction via mock signal injection. Lastly, implementations for the calculation of power spectra and correlation functions. `FastBox` is designed as a lightweight but realistic test-bench for the development and validation of end-to-end cosmological analysis pipelines.
+`FastBox` is a Python package for generating fast, physically realistic simulations of cosmological signals in three-dimensional co-moving boxes, with the primary focus of its application being 21cm intensity mapping (IM) experiments. It provides a framework for producing cosmology-dependent Gaussian and log-normal density fields, as well as modelling the effects of redshift-space distortions and linear biasing, among others. Models of instrumental systematics are incorporated, including radiometer noise and beam convolutions. Diffuse and point source foreground models are included, along with a number of foreground filtering strategies such as PCA, ICA, and transfer function correction via mock signal injection. Lastly, estimators are provided for power spectra, the two-point correlation function, and the equilateral bispectrum. Simulation grids may be cubic or anisotropic, with independent side lengths and cell counts along each Cartesian axis. `FastBox` is designed as a lightweight but realistic test-bench for the development and validation of end-to-end cosmological analysis pipelines.
 
 # Statement of Need
 
@@ -35,25 +44,29 @@ A number of 21cm simulation packages exist, but most are not designed for the ra
 
 # State of the Field
 
-`FastBox` intends to serve as a complementary package to existing cosmology-focused packages. `PowerBox` [@Murray2018] simulates two-point distributions (power spectra) in arbitrary numbers of dimensions, and is primarily intended to be a generator of mock galaxy distributions. `Tools21cm` [@Giri2020] aims to instead analyse simulated 21cm signals, primarily at the EoR and Cosmic Dawn (CD). For example, using previously and externally produced simulations, mock radio observations can be produced, as well as 21cm lightcones, and 1D, 2D, and cross power spectra. Lastly, `21cmFAST` [@REF] is a simulator focused on early-Universe fields, namely the EoR and CD. `FastBox` fills a niche in that it combines post-EoR signal simulation, foreground modelling, noise, and foreground filtering into a single lightweight package, providing an end-to-end test-bench specifically for IM analysis development.
+`FastBox` intends to serve as a complementary package to existing cosmology-focused packages. `PowerBox` [@Murray2018] simulates two-point distributions (power spectra) in arbitrary numbers of dimensions, and is primarily intended to be a generator of mock galaxy distributions. `Tools21cm` [@Giri2020] aims to instead analyse simulated 21cm signals, primarily at the EoR and Cosmic Dawn (CD). For example, using previously and externally produced simulations, mock radio observations can be produced, as well as 21cm lightcones, and 1D, 2D, and cross power spectra. Lastly, `21cmFAST` [@Mesinger2011] is a simulator focused on early-Universe fields, namely the EoR and CD. `FastBox` fills a niche in that it combines post-EoR signal simulation, foreground modelling, noise, and foreground filtering into a single lightweight package, providing an end-to-end test-bench specifically for IM analysis development.
 
 # Software Design
 
-`FastBox` is built around the `CosmoBox` class (`fastbox.box`), which contains the cosmological parameters, co-moving volume, and grid resolution of a simulation. This handles operations such as density field generation, and brightness temperature scaling. `pyccl` [@Chisari2019] handles cosmological computations, including correlation functions.
+`FastBox` is built around the `CosmoBox` class (`fastbox.box`), which contains the cosmological parameters, co-moving volume, and grid resolution of a simulation. This handles operations such as density field generation, and brightness temperature scaling. The box need not be cubic: both the side lengths and the number of grid cells may be specified independently per Cartesian axis, so that a simulated volume can be matched to the anisotropic sky-frequency geometry of a real IM survey. `pyccl` [@Chisari2019] handles cosmological computations.
 
 The package is organised into the following submodules:
 
-- `fastbox.box` – core simulation box; density fields, redshift-space transforms, binned power spectra
+- `fastbox.box` – core simulation box; density fields, redshift-space transforms, cubic and anisotropic grids
+- `fastbox.power` – power spectrum estimation, the 1D two-point correlation function, and the equilateral bispectrum
 - `fastbox.tracers` – HI tracer biasing, mean brightness temperature, and mock signal generation
 - `fastbox.foregrounds` – Galactic synchrotron and extragalactic point source foreground models
 - `fastbox.noise` – radiometer noise model for multi-dish arrays
 - `fastbox.filters` – foreground separation (PCA, ICA, NMF) and transfer function estimation
 - `fastbox.forecast` – Fisher matrix forecasts for cosmological parameters
 - `fastbox.voids` – void detection and catalogue generation
-- `fastbox.beams` – FFT and direct beam convolutions
+- `fastbox.halos` – halo catalogue generation
+- `fastbox.beams` – beam models (Gaussian, KATBeam, Zernike) with FFT and direct convolutions
 - `fastbox.inpaint` – Gaussian process inpainting of flagged or missing data
+- `fastbox.meerklass` – MeerKLASS survey geometry, released-window loading, hit-map noise, and masked weighted PCA
+- `fastbox.analysis`, `fastbox.plot`, `fastbox.utils` – analysis helpers, plotting, and shared utilities
 
-All Fourier operations use `numpy.fft`, with `nbodykit` [@Hand2018] providing power spectrum multipoles and two-point correlation functions via its FFT routines.
+All Fourier operations use `numpy.fft`. Power spectrum multipoles are obtained via `nbodykit` [@Hand2018], while the two-point correlation function and the equilateral bispectrum are estimated natively in `fastbox.power`, the former via the Wiener-Khinchin theorem and the latter using the Scoccimarro estimator.
 
 # Usage Examples
 
@@ -154,8 +167,7 @@ T_s, T_m = fastbox.filters.pca_transfer_function(data_cube, cleaned_pca,
 
 ```python
 import numpy as np
-from nbodykit.lab import ArrayMesh
-from nbodykit.algorithms.fftcorr import FFTCorr
+from fastbox.power import Power
 
 # Binned spherically-averaged power spectrum (transfer-function corrected)
 k, pk, stddev = box.binned_power_spectrum(delta_x=cleaned_pca, nbins=50)
@@ -165,12 +177,14 @@ pk_corrected  = pk / T_m
 th_k, th_pk = box.theoretical_power_spectrum()
 amp_fac = (tracer.signal_amplitude() * tracer.bias_HI())**2.
 
-# Two-point correlation function via nbodykit
-boxsize  = (box.Lx, box.Ly, box.Lz)
-mesh     = ArrayMesh(signal_cube, BoxSize=boxsize)
-corrfn   = FFTCorr(first=mesh, mode='1d', BoxSize=boxsize,
-                   los=[0, 0, 1], dr=2., rmin=20., rmax=200.)
-corr, _  = corrfn.run()
+# Higher-order and configuration-space statistics
+power = Power(box)
+
+# 1D two-point correlation function (Wiener-Khinchin, no external dependency)
+r, xi = power.est_2pcf(signal_cube)
+
+# Equilateral bispectrum B(k, k, k) via the Scoccimarro estimator
+k_b, b_eq, ntri = power.bispectrum_equilateral(signal_cube, n_bins=8)
 ```
 
 ![Spherically-averaged power spectra from an end-to-end simulation at $z = 0.8$. The theoretical prediction (black) is compared against the true HI signal (blue), and the signal recovered after PCA (red) and ICA (yellow) foreground removal with $N_{\rm fg} = 3$ modes subtracted. Large-scale power loss from foreground filtering is visible at low $k$.](figures/power_spectrum.pdf){#fig:power_spectrum width=100%}
